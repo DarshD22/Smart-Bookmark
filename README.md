@@ -2,6 +2,27 @@
 
 A minimal bookmark manager with auto-refresh built with Next.js 14, Supabase, and Google OAuth.
 
+## ⚠️ Google OAuth Fix (If Login Redirects to Wrong URL)
+
+If Google login works on localhost but not on Vercel, or redirects you to the wrong URL:
+
+1. **In Supabase Dashboard:**
+   - Go to **Authentication** → **URL Configuration**
+   - Set **Site URL** to: `https://your-app.vercel.app` (your production URL)
+   - Add **Redirect URLs**:
+     - `http://localhost:3000/**`
+     - `https://your-app.vercel.app/**`
+
+2. **In Google Cloud Console:**
+   - Go to **Credentials** → Edit your OAuth client
+   - **Authorized redirect URIs** should ONLY have:
+     - `https://<your-project>.supabase.co/auth/v1/callback`
+   - Do NOT add localhost or Vercel URLs here
+
+3. **Clear browser cache and try again**
+
+---
+
 ## Features
 
 - 🔐 Google OAuth authentication
@@ -28,8 +49,8 @@ A minimal bookmark manager with auto-refresh built with Next.js 14, Supabase, an
 ### 1. Clone and Install
 
 ```bash
-git clone <your-repo-url>
-cd bookmark-app
+git clone Smart-Bookmark
+cd Smart-Bookmark
 npm install
 ```
 
@@ -73,9 +94,10 @@ npm install
 5. Add Authorized redirect URIs:
    ```
    https://<your-supabase-project-ref>.supabase.co/auth/v1/callback
-   http://localhost:3000/auth/v1/callback
    ```
    (Replace `<your-supabase-project-ref>` with your actual Supabase project reference)
+   
+   **Important:** You only need the Supabase callback URL. Do NOT add your localhost or Vercel URLs here.
 
 6. Copy the **Client ID** and **Client Secret**
 
@@ -83,6 +105,14 @@ npm install
    - Go to **Authentication** → **Providers** → **Google**
    - Paste the Client ID and Client Secret
    - Save
+
+8. Configure Site URL (Important for redirects):
+   - Go to **Authentication** → **URL Configuration**
+   - Set **Site URL** to your production URL: `https://your-app.vercel.app`
+   - Add **Redirect URLs**:
+     - `http://localhost:3000/**` (for local development)
+     - `https://your-app.vercel.app/**` (for production)
+   - This ensures OAuth redirects work correctly in both environments
 
 ### 4. Environment Variables
 
@@ -126,16 +156,22 @@ git push -u origin main
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 5. Click **Deploy**
 
-### 3. Update Google OAuth Redirect URIs
+### 3. Configure Supabase for Production
 
-After deployment, add your Vercel URL to Google Cloud Console:
+After deployment, update Supabase settings:
 
-1. Go to Google Cloud Console → Credentials
-2. Edit your OAuth client
-3. Add to Authorized redirect URIs:
+1. Go to Supabase → **Authentication** → **URL Configuration**
+2. Set **Site URL** to your Vercel URL:
    ```
-   https://<your-supabase-project-ref>.supabase.co/auth/v1/callback
+   https://your-app-name.vercel.app
    ```
+3. Add to **Redirect URLs**:
+   ```
+   https://your-app-name.vercel.app/**
+   ```
+4. Save changes
+
+**Note:** You do NOT need to update Google Cloud Console redirect URIs. The Supabase callback URL stays the same.
 
 ## Project Structure
 
@@ -145,6 +181,9 @@ After deployment, add your Vercel URL to Google Cloud Console:
     page.tsx          # Google OAuth login page
   /dashboard
     page.tsx          # Protected dashboard with bookmarks
+  /auth
+    /callback
+      route.ts        # OAuth callback handler
   layout.tsx          # Root layout
   page.tsx            # Home page (redirects to login)
   globals.css         # Global styles with Tailwind
@@ -190,7 +229,16 @@ The app uses polling to keep bookmarks synchronized across tabs:
 
 ### "Invalid login credentials" error
 - Check that Google OAuth is properly configured in Supabase
-- Verify redirect URIs match exactly
+- Verify redirect URIs match exactly (only the Supabase callback URL should be in Google Cloud Console)
+- Make sure you've added your Client ID and Secret in Supabase
+
+### Google login redirects to wrong URL (localhost instead of production)
+- Go to Supabase → **Authentication** → **URL Configuration**
+- Set **Site URL** to your production URL (e.g., `https://your-app.vercel.app`)
+- Add both localhost and production URLs to **Redirect URLs**:
+  - `http://localhost:3000/**`
+  - `https://your-app.vercel.app/**`
+- Clear your browser cache and cookies, then try again
 
 ### Bookmarks not appearing
 - Check browser console for errors
