@@ -11,28 +11,45 @@ import type { User } from '@supabase/supabase-js'
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (!session) {
-        router.push('/login')
-        return
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+
+        if (sessionError) {
+          console.error('Session error:', sessionError)
+          setError('Failed to load session')
+          setLoading(false)
+          return
+        }
+
+        if (!session) {
+          router.push('/login')
+          return
+        }
+
+        setUser(session.user)
+        setError(null)
+        setLoading(false)
+      } catch (err) {
+        console.error('Unexpected error:', err)
+        setError('An error occurred')
+        setLoading(false)
       }
-      
-      setUser(session.user)
-      setLoading(false)
     }
 
     checkUser()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
+        setUser(null)
         router.push('/login')
       } else {
         setUser(session.user)
+        setError(null)
       }
     })
 
@@ -45,6 +62,14 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-gray-600">Loading...</div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-red-600">Error: {error}</div>
       </div>
     )
   }
@@ -66,7 +91,7 @@ export default function DashboardPage() {
               Save and organize your favorite links
             </p>
           </div>
-          
+
           <BookmarkForm userId={user.id} />
           <BookmarkList userId={user.id} />
         </div>
